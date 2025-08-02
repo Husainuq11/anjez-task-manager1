@@ -26,7 +26,7 @@ export function HabitTracker({ t }) {
 
   const loadHabits = async () => {
     try {
-      const response = await fetch('/api/habits')
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/habits`)
       if (response.ok) {
         const data = await response.json()
         setHabits(data)
@@ -44,7 +44,7 @@ export function HabitTracker({ t }) {
 
   const createHabit = async () => {
     try {
-      const response = await fetch('/api/habits', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/habits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ export function HabitTracker({ t }) {
 
   const deleteHabit = async (habitId) => {
     try {
-      const response = await fetch(`/api/habits/${habitId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/habits/${habitId}`, {
         method: 'DELETE',
       })
       
@@ -91,7 +91,7 @@ export function HabitTracker({ t }) {
 
   const checkinHabit = async (habitId) => {
     try {
-      const response = await fetch(`/api/habits/${habitId}/checkin`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/habits/${habitId}/checkin`, {
         method: 'POST',
       })
       
@@ -300,4 +300,3 @@ export function HabitTracker({ t }) {
     </div>
   )
 }
-

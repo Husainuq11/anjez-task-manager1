@@ -30,7 +30,7 @@ export function TaskManager({ t }) {
 
   const loadTasks = async () => {
     try {
-      const response = await fetch('/api/tasks')
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks`)
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
@@ -48,7 +48,7 @@ export function TaskManager({ t }) {
 
   const createTask = async () => {
     try {
-      const response = await fetch('/api/tasks', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export function TaskManager({ t }) {
 
   const updateTask = async (taskId, updates) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export function TaskManager({ t }) {
 
   const deleteTask = async (taskId) => {
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'DELETE',
       })
       
