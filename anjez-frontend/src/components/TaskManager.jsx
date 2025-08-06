@@ -278,7 +278,80 @@ export function TaskManager({ t }) {
           {filter === 'all' ? 'لا توجد مهام' : `لا توجد مهام ${t(filter)}`}
         </div>
       )}
+      
+      {/* Edit Task Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('editTask')}</DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">{t('taskTitle')}</Label>
+                <Input
+                  id="edit-title"
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-description">{t('taskDescription')}</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingTask.description}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-due_date">{t('dueDate')}</Label>
+                <Input
+                  id="edit-due_date"
+                  type="date"
+                  value={editingTask.due_date}
+                  onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-priority">{t('priority')}</Label>
+                <Select 
+                  value={editingTask.priority} 
+                  onValueChange={(value) => setEditingTask({ ...editingTask, priority: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">{t('high')}</SelectItem>
+                    <SelectItem value="medium">{t('medium')}</SelectItem>
+                    <SelectItem value="low">{t('low')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2 rtl:space-x-reverse">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  {t('cancel')}
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    await updateTask(editingTask.id, {
+                      title: editingTask.title,
+                      description: editingTask.description,
+                      due_date: editingTask.due_date,
+                      priority: editingTask.priority
+                    })
+                    setIsEditDialogOpen(false)
+                    setEditingTask(null)
+                  }} 
+                  disabled={!editingTask.title}
+                >
+                  {t('save')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
