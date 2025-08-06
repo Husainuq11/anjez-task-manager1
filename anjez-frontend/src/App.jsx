@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -21,8 +21,13 @@ const translations = {
     dashboard: 'لوحة التحكم',
     tasks: 'المهام',
     habits: 'العادات',
-    statistics: 'الإحصائيات',
     settings: 'الإعدادات',
+    login: 'تسجيل الدخول',
+    logout: 'تسجيل الخروج',
+    username: 'اسم المستخدم',
+    password: 'كلمة المرور',
+    email: 'البريد الإلكتروني',
+    register: 'إنشاء حساب',
     welcome: 'مرحباً بك',
     welcomeDesc: 'إدارة مهامك وتتبع عاداتك بسهولة',
     totalTasks: 'إجمالي المهام',
@@ -68,8 +73,13 @@ const translations = {
     dashboard: 'Dashboard',
     tasks: 'Tasks',
     habits: 'Habits',
-    statistics: 'Statistics',
     settings: 'Settings',
+    login: 'Login',
+    logout: 'Logout',
+    username: 'Username',
+    password: 'Password',
+    email: 'Email',
+    register: 'Register',
     welcome: 'Welcome back',
     welcomeDesc: 'Manage your tasks and track your habits with ease',
     totalTasks: 'Total Tasks',
@@ -116,11 +126,40 @@ const translations = {
 function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('ar')
   const [theme, setTheme] = useState('light')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
 
   const t = (key) => translations[language][key] || key
 
+  // Check if user is logged in on app start
+  useEffect(() => {
+    const token = localStorage.getItem('authToken')
+    const userData = localStorage.getItem('userData')
+    if (token && userData) {
+      setIsAuthenticated(true)
+      setUser(JSON.parse(userData))
+    }
+  }, [])
+
+  const login = (userData, token) => {
+    localStorage.setItem('authToken', token)
+    localStorage.setItem('userData', JSON.stringify(userData))
+    setIsAuthenticated(true)
+    setUser(userData)
+  }
+
+  const logout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('userData')
+    setIsAuthenticated(false)
+    setUser(null)
+  }
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, theme, setTheme, t }}>
+    <LanguageContext.Provider value={{ 
+      language, setLanguage, theme, setTheme, t, 
+      isAuthenticated, user, login, logout 
+    }}>
       <div dir={language === 'ar' ? 'rtl' : 'ltr'} className={`${theme} ${language === 'ar' ? 'font-arabic' : 'font-english'}`}>
         {children}
       </div>
@@ -139,14 +178,13 @@ function useLanguage() {
 
 // Header Component
 function Header({ currentPage, setCurrentPage }) {
-  const { language, setLanguage, theme, setTheme, t } = useLanguage()
+  const { language, setLanguage, theme, setTheme, t, isAuthenticated, user, logout } = useLanguage()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navItems = [
     { id: 'dashboard', label: t('dashboard') },
     { id: 'tasks', label: t('tasks') },
-    { id: 'habits', label: t('habits') },
-    { id: 'statistics', label: t('statistics') }
+    { id: 'habits', label: t('habits') }
   ]
 
   return (
@@ -178,6 +216,23 @@ function Header({ currentPage, setCurrentPage }) {
 
           {/* Controls */}
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
+            {/* User Info and Logout */}
+            {isAuthenticated && user && (
+              <>
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  {user.username}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {t('logout')}
+                </Button>
+              </>
+            )}
+
             {/* Language Toggle */}
             <Button
               variant="ghost"
@@ -238,23 +293,199 @@ function Header({ currentPage, setCurrentPage }) {
   )
 }
 
+// Login Component
+function Login() {
+  const { t, login } = useLanguage()
+  const [isLogin, setIsLogin] = useState(true)
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: ''
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        login(data.user, data.token)
+      } else {
+        setError(data.message || 'حدث خطأ أثناء تسجيل الدخول')
+      }
+    } catch (error) {
+      console.error('Auth error:', error)
+      setError('حدث خطأ في الاتصال')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <div className="flex justify-center">
+            <img src={logo} alt="Anjez Logo" className="h-12 w-12" />
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+            {isLogin ? t('login') : t('register')}
+          </h2>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="username">{t('username')}</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              {!isLogin && (
+                <div>
+                  <Label htmlFor="email">{t('email')}</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'جاري التحميل...' : (isLogin ? t('login') : t('register'))}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-blue-600 hover:text-blue-500 text-sm"
+                >
+                  {isLogin ? 'إنشاء حساب جديد' : 'لديك حساب؟ سجل دخولك'}
+                </button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
 // Dashboard Component
 function Dashboard() {
   const { t } = useLanguage()
-  const [tasks] = useState([
-    { id: 1, title: 'مراجعة التقرير الشهري', description: 'مراجعة وتحليل التقرير المالي', dueDate: '2025-01-27', priority: 'high', completed: false },
-    { id: 2, title: 'اجتماع الفريق', description: 'اجتماع أسبوعي مع الفريق', dueDate: '2025-01-26', priority: 'medium', completed: true },
-    { id: 3, title: 'تحديث الموقع', description: 'إضافة ميزات جديدة للموقع', dueDate: '2025-01-28', priority: 'low', completed: false }
-  ])
+  const [tasks, setTasks] = useState([])
+  const [habits, setHabits] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const [habits] = useState([
-    { id: 1, name: 'قراءة يومية', description: 'قراءة 30 دقيقة يومياً', streak: 5, frequency: 'daily', lastCheckin: '2025-01-26' },
-    { id: 2, name: 'تمارين رياضية', description: 'ممارسة الرياضة لمدة ساعة', streak: 3, frequency: 'daily', lastCheckin: '2025-01-25' },
-    { id: 3, name: 'تعلم لغة جديدة', description: 'دراسة اللغة الإنجليزية', streak: 7, frequency: 'daily', lastCheckin: '2025-01-26' }
-  ])
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
 
-  const completedToday = tasks.filter(task => task.completed && task.dueDate === '2025-01-26').length
-  const todaysTasks = tasks.filter(task => task.dueDate === '2025-01-26')
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load tasks
+      const tasksResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/tasks`)
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json()
+        setTasks(tasksData)
+      }
+
+      // Load habits
+      const habitsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/habits`)
+      if (habitsResponse.ok) {
+        const habitsData = await habitsResponse.json()
+        setHabits(habitsData)
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+      // Fallback to mock data if API fails
+      setTasks([
+        { id: 1, title: 'مراجعة التقرير الشهري', description: 'مراجعة وتحليل التقرير المالي', due_date: '2025-01-27', priority: 'high', completed: false },
+        { id: 2, title: 'اجتماع الفريق', description: 'اجتماع أسبوعي مع الفريق', due_date: '2025-01-26', priority: 'medium', completed: true },
+        { id: 3, title: 'تحديث الموقع', description: 'إضافة ميزات جديدة للموقع', due_date: '2025-01-28', priority: 'low', completed: false }
+      ])
+      setHabits([
+        { id: 1, name: 'قراءة يومية', description: 'قراءة 30 دقيقة يومياً', streak: 5, frequency: 'daily', last_checkin: '2025-01-26' },
+        { id: 2, name: 'تمارين رياضية', description: 'ممارسة الرياضة لمدة ساعة', streak: 3, frequency: 'daily', last_checkin: '2025-01-25' },
+        { id: 3, name: 'تعلم لغة جديدة', description: 'دراسة اللغة الإنجليزية', streak: 7, frequency: 'daily', last_checkin: '2025-01-26' }
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+  const completedToday = tasks.filter(task => task.completed && task.due_date === today).length
+  const todaysTasks = tasks.filter(task => task.due_date === today)
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -348,20 +579,6 @@ function Dashboard() {
   )
 }
 
-// Statistics Component
-function Statistics() {
-  const { t } = useLanguage()
-  
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold mb-8">{t('statistics')}</h1>
-      <div className="text-center py-16 text-gray-500">
-        قريباً - إحصائيات مفصلة عن أدائك
-      </div>
-    </div>
-  )
-}
-
 // Main App Component
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -375,7 +592,12 @@ function App() {
 
 // App Content Component
 function AppContent({ currentPage, setCurrentPage }) {
-  const { t } = useLanguage()
+  const { t, isAuthenticated } = useLanguage()
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <Login />
+  }
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -385,8 +607,6 @@ function AppContent({ currentPage, setCurrentPage }) {
         return <TaskManager t={t} />
       case 'habits':
         return <HabitTracker t={t} />
-      case 'statistics':
-        return <Statistics />
       default:
         return <Dashboard />
     }
@@ -403,4 +623,3 @@ function AppContent({ currentPage, setCurrentPage }) {
 }
 
 export default App
-

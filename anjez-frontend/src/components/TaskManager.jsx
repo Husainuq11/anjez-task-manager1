@@ -278,7 +278,7 @@ export function TaskManager({ t }) {
           {filter === 'all' ? 'لا توجد مهام' : `لا توجد مهام ${t(filter)}`}
         </div>
       )}
-      
+
       {/* Edit Task Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
